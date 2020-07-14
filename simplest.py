@@ -4,9 +4,9 @@ from enum import Enum
 from random import randint
 from typing import Optional, TypeVar, Generic, List
 from pydantic import BaseModel, Field, HttpUrl
-from fastapi import FastAPI, Response, status
+from starlette.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request, Response, status, HTTPException
 from fastapi import Query, Path, Body, Cookie, Header, Form, File, UploadFile
-from starlette.responses import HTMLResponse
 
 app = FastAPI(
     # App title and version, used in docs
@@ -68,7 +68,15 @@ class ItemType(str, Enum):
 
 # http://127.0.0.1:8000/items/5?q=somequery
 # One path parameter, one query parameter
-@app.get("/items/{item_id}")
+@app.get("/items/{item_id}",
+         # 'tags' used for OpenAPI docs navigation as categories
+         tags=['items'],
+         # Describe the API (OpenAPI docs)
+         summary='API summary (right next to the title)',
+         response_description='Description for the response value',
+         # Deprecate an API (OpenAPI docs)
+         deprecated=True,
+         )
 def read_item_by_id(
         # singular parameters (like int, float, str, bool, etc) are interpreted as query parameters
         # Pydantic models are interpreted as a request body.
@@ -92,6 +100,7 @@ def read_item_by_id(
             deprecated=True,  # stop using it
         )
         ):
+    """ Provide API description **as Markdown** """
     # Enums will be converted to their **values** (not names)
     return {"item_id": item_id, "q": q, 'item_type': item_type}
 
@@ -276,6 +285,60 @@ async def main():
     return HTMLResponse(content=content)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+# Report errors
+@app.get("/item-by-id/{item_id}")
+async def get_item_by_id(item_id: str):
+    items = {"foo": "The Foo Wrestlers"}
+    if item_id not in items:
+        raise HTTPException(status_code=404,
+                            # Will return a JSON response {'detail': {'msg': ...}}
+                            detail={'msg': "Item not found"})
+    return {"item": items[item_id]}
+
+# Globally convert UnicornException to HTTPException
+class UnicornException(Exception): pass
+
+@app.exception_handler(UnicornException)
+async def unicorn_exception_handler(request: Request, exc: UnicornException):
+    return JSONResponse(
+        status_code=418,
+        content={"message": f"Oops! {exc.name} did something. There goes a rainbow..."},
+    )
+
+
+# Advanced: override the exception handler for validation errors
+if False:
+    from fastapi.encoders import jsonable_encoder
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            # exc.body: the body it received with invalid data.
+            content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+        )
+
+        # you can reuse the default handler
+        from fastapi.exception_handlers import request_validation_exception_handler
+        request_validation_exception_handler(request, exc)
+
+# Advanced: override the exception handler for HTTP errros
+if False:
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request, exc):
+        return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
 
 
 
