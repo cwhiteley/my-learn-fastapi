@@ -327,6 +327,7 @@ if False:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             # exc.body: the body it received with invalid data.
+            # jsonable_encoder() is what @vdmit11 calls "jsonify()" :)
             content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
         )
 
