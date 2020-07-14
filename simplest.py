@@ -4,8 +4,8 @@ from enum import Enum
 from random import randint
 from typing import Optional, TypeVar, Generic, List
 from pydantic import BaseModel, Field, HttpUrl
-from fastapi import FastAPI, Response
-from fastapi import Query, Path, Body, Cookie, Header
+from fastapi import FastAPI, Response, status
+from fastapi import Query, Path, Body, Cookie, Header, Form
 
 app = FastAPI(
     # App title and version, used in docs
@@ -13,6 +13,7 @@ app = FastAPI(
     version='0.0.1',
 )
 
+# Running:
 # uvicorn simplest:app --reload
 
 # OpenAPI docs: http://127.0.0.1:8000/docs
@@ -25,8 +26,13 @@ app = FastAPI(
 # PUT: to update data.
 # DELETE: to delete data.
 
+
+
+
+
+
 # http://127.0.0.1:8000/
-@app.get("/")
+@app.get("/", status_code=200)
 async def read_root(
         response: Response,
         user_agent: str = Header(None),  # takent from headers
@@ -42,6 +48,13 @@ async def read_root(
             'user_id': user_id,
             'User-Agent': user_agent,
             }
+
+
+
+
+
+
+
 
 
 # Using enums
@@ -81,13 +94,23 @@ def read_item_by_id(
     return {"item_id": item_id, "q": q, 'item_type': item_type}
 
 
+
+
+
+
 # Using paths
 @app.get("/item_path/{path:path}")
 def read_item_by_type(path: str):
     return {'path': path}
 
 
-# Interface: data model
+
+
+
+
+
+
+# Interface: data model, saving objects
 class Item(BaseModel):
     # Pydantic validation
     # (note: Query(), Path(), Body() are subclasses of Pydantic.field)
@@ -126,6 +149,8 @@ class PutItemResponse(BaseModel):
 
 # Saving: body as JSON (`item`)
 @app.put("/items/{item_id}",
+         status_code=status.HTTP_201_CREATED,  # created
+         # Response model
          response_model=PutItemResponse,
          # Remove default values; only use those explicitly set
          response_model_exclude_unset=True,
@@ -138,6 +163,28 @@ class PutItemResponse(BaseModel):
          )
 def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
+
+
+
+
+
+
+
+
+
+
+
+# Saving from an HTML form
+# OAUTH2 spec says those fields have to be named 'username' and 'password' and sent as form fields
+@app.post("/login/")
+async def login(username: str = Form(...), password: str = Form(...)):
+    return {"username": username, 'password': 'no way'}
+
+
+
+
+
+
 
 
 
@@ -171,3 +218,12 @@ Device.update_forward_refs()
 @app.put('/save')
 def save(user: User):
     pass
+
+
+
+
+
+
+
+
+
