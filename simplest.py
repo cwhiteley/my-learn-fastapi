@@ -1,9 +1,10 @@
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
-from typing import Optional, TypeVar, Generic
-from fastapi import FastAPI
+from typing import Optional, TypeVar, Generic, List
 from pydantic import BaseModel
+from fastapi import FastAPI
+from fastapi import Query, Path, Body
 
 app = FastAPI(
     # App title, used in docs
@@ -33,23 +34,42 @@ async def read_root():
     return {"Hello": "World"}
 
 
-# http://127.0.0.1:8000/items/5?q=somequery
-# One path parameter, one query parameter
-@app.get("/items/{item_id}")
-def read_item_by_id(item_id: int, q: Optional[str] = None):
-    return {"item_id": item_id, "q": q}
-
-
 # Using enums
 class ItemType(str, Enum):
     ALEXNET = "alexnet"
     RESNET = "resnet"
     LENET = "lenet"
 
-@app.get("/item_type/{item_type}")
-def read_item_by_type(item_type: ItemType):
-    # Enum will be converted to its **value** (not name)
-    return {"item_type": item_type}
+
+# http://127.0.0.1:8000/items/5?q=somequery
+# One path parameter, one query parameter
+@app.get("/items/{item_id}")
+def read_item_by_id(
+        # singular parameters (like int, float, str, bool, etc) are interpreted as query parameters
+        # Pydantic models are interpreted as a request body.
+        # Use Path(), Query(), Body() to mark parameters' source
+        item_id: int = Path(..., # no default
+                            title='Title for OpenAPI docs'
+                            ),
+        # query parameter
+        q: Optional[str] = Query('fixedquery',  # default; use `...` for no default
+                                 # validation
+                                 min_length=3,
+                                 max_length=60,
+                                 regex="^fixedquery$"
+                                 ),
+        # This query parameter can be provided multiple times
+        item_type: List[ItemType] = Query(
+            [],
+            title='Title for OpenAPI',
+            description='Help text for OpenAPI',
+            alias='itemType',  # another name, e.g. when not a valid Python identifier
+            deprecated=True,  # stop using it
+        )
+        ):
+    # Enums will be converted to their **values** (not names)
+    return {"item_id": item_id, "q": q, 'item_type': item_type}
+
 
 # Using paths
 @app.get("/item_path/{path:path}")
@@ -66,10 +86,7 @@ class Item(BaseModel):
 
 
 # Saving: body as JSON (`item`)
-# singular parameters (like int, float, str, bool, etc) are interpreted as query parameters
-# Pydantic models are interpreted as a request body.
 @app.put("/items/{item_id}")
 def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
-
 
