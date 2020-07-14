@@ -1,10 +1,11 @@
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
+from random import randint
 from typing import Optional, TypeVar, Generic, List
 from pydantic import BaseModel, Field, HttpUrl
-from fastapi import FastAPI
-from fastapi import Query, Path, Body
+from fastapi import FastAPI, Response
+from fastapi import Query, Path, Body, Cookie, Header
 
 app = FastAPI(
     # App title and version, used in docs
@@ -26,13 +27,21 @@ app = FastAPI(
 
 # http://127.0.0.1:8000/
 @app.get("/")
-async def read_root():
+async def read_root(
+        response: Response,
+        user_agent: str = Header(None),  # takent from headers
+        user_id: int = Cookie(None),  # taken from a cookie
+    ):
+    response.set_cookie('user_id', randint(0,999))
     # You can return:
     # dict, list, singular values as str, int, etc.
     # Pydantic models
     # many other objects and models
     # ORM models
-    return {"Hello": "World"}
+    return {"Hello": "World",
+            'user_id': user_id,
+            'User-Agent': user_agent,
+            }
 
 
 # Using enums
@@ -109,8 +118,24 @@ class Image(BaseModel):
 
 Item.update_forward_refs()  # when forward references fail to update
 
+
+class PutItemResponse(BaseModel):
+    item_name: str
+    item_id: int
+    with_default_value: int = 0
+
 # Saving: body as JSON (`item`)
-@app.put("/items/{item_id}")
+@app.put("/items/{item_id}",
+         response_model=PutItemResponse,
+         # Remove default values; only use those explicitly set
+         response_model_exclude_unset=True,
+         # Remove None values
+         response_model_exclude_none=True,
+         # Include/exclude individual fields (like the password field)
+         # NOTE: it is recommended to use separate classes instead
+         response_model_include=[],
+         response_model_exclude=[],
+         )
 def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 
@@ -118,7 +143,19 @@ def update_item(item_id: int, item: Item):
 
 
 
+
 # Example recursive models
+
+# NOTE: in real world, you'll likely have multiple related models:
+# * UserIn (input, with password)
+# * UserOut (output, no password)
+# * UserDB (DB model)
+# * UserPart (partial user input)
+# and do like this:
+#   UserInDB(**user_in.dict(), hashed_password=hashed_password)
+#
+# But to reduce code duplication:
+# use class inheritance ; Union[] ; generate partial classes
 
 class User(BaseModel):
     id: int
