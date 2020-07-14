@@ -5,7 +5,8 @@ from random import randint
 from typing import Optional, TypeVar, Generic, List
 from pydantic import BaseModel, Field, HttpUrl
 from fastapi import FastAPI, Response, status
-from fastapi import Query, Path, Body, Cookie, Header, Form
+from fastapi import Query, Path, Body, Cookie, Header, Form, File, UploadFile
+from starlette.responses import HTMLResponse
 
 app = FastAPI(
     # App title and version, used in docs
@@ -33,6 +34,7 @@ app = FastAPI(
 
 # http://127.0.0.1:8000/
 @app.get("/", status_code=200)
+# When you use the async methods, FastAPI runs the file methods in a threadpool and awaits for them.
 async def read_root(
         response: Response,
         user_agent: str = Header(None),  # takent from headers
@@ -190,7 +192,6 @@ async def login(username: str = Form(...), password: str = Form(...)):
 
 
 
-
 # Example recursive models
 
 # NOTE: in real world, you'll likely have multiple related models:
@@ -219,6 +220,60 @@ Device.update_forward_refs()
 def save(user: User):
     pass
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Receiving files
+@app.post("/files/")
+async def create_file(
+        # Stream of bytes
+        # the whole contents will be stored in memory. For small files!
+        file: bytes = File(...)):
+    return {"file_size": len(file)}
+
+
+# UploadFile
+@app.post("/uploadfile/")
+async def create_upload_file(
+        # Uploaded file, partly on disk, with metadata available ("spooled" file)
+        # It also has an async interface
+        file: UploadFile = File(...)):
+    return {"filename": file.filename,
+            "contents": await file.read()
+            }
+
+# Upload many files at once
+@app.post("/uploadfiles/")
+async def create_upload_files(files: List[UploadFile] = File(...)):
+    return {"filenames": [file.filename for file in files]}
+
+
+@app.get("/")
+async def main():
+    content = """
+        <body>
+        <form action="/files/" enctype="multipart/form-data" method="post">
+            <input name="files" type="file" multiple>
+            <input type="submit">
+        </form>
+        <form action="/uploadfiles/" enctype="multipart/form-data" method="post">
+            <input name="files" type="file" multiple>
+            <input type="submit">
+        </form>
+        </body>
+    """
+    return HTMLResponse(content=content)
 
 
 
