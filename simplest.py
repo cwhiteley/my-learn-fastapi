@@ -24,8 +24,9 @@ app = FastAPI(
 # Operations:
 # POST: to create data.
 # GET: to read data.
-# PUT: to update data.
+# PUT: to update data (whole or partial).
 # DELETE: to delete data.
+# PATCH: for partial updates (some teams use it)
 
 
 
@@ -175,6 +176,29 @@ class PutItemResponse(BaseModel):
 def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 
+
+
+
+
+
+
+
+# Partial updates
+# NOTE: the input model is still validated! If you need to skip it, create a new model with all fields optional
+@app.patch("/items/{item_id}", response_model=Item)
+async def update_item(item_id: str, item: Item):
+    # Load
+    db_item: Item = ...  # load it somehow and convert to a Pydantic type (from_orm())
+
+    # Update the item using dict(exclude_unset=True) + copy(update)
+    update_data = item.dict(exclude_unset=True)  # `exclude_unset`: omit defaults; only use values set by the user
+    updated_item = db_item.copy(update=update_data)  # partial update
+
+    # Save
+    ...(jsonable_encoder(updated_item))
+
+    # DOne
+    return updated_item
 
 
 
