@@ -5,7 +5,8 @@ from enum import Enum
 from random import randint
 from typing import Optional, TypeVar, Generic, List
 from pydantic import BaseModel, Field, HttpUrl
-from starlette.responses import HTMLResponse, JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi import FastAPI, Request, Response, status, HTTPException
 from fastapi import Query, Path, Body, Cookie, Header, Form, File, UploadFile
 
@@ -389,5 +390,43 @@ async def add_process_time_header(request: Request, call_next):
 
 
 
+
+
+# CORS
+# Cross-origin: when the UI runs on a host different from the API
+# Origin: scheme+domain+port
+
+# Then, the browser will send an HTTP OPTIONS request to the backend, and if the backend sends
+# the appropriate headers authorizing the communication from this different origin,
+# then the browser will let the JavaScript in the frontend send its request to the backend.
+#
+# To achieve this, the backend must have a list of "allowed origins".
+
+# It's also possible to declare the list as "*" (a "wildcard") to say that all are allowed.
+# But that will only allow certain types of communication, excluding everything that
+# involves credentials: Cookies, Authorization headers like those used with Bearer Tokens, etc.
+#
+# So, for everything to work correctly, it's better to specify explicitly the allowed origins.
+
+# You can configure it in your FastAPI application using the CORSMiddleware.
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    # Origins permitted to make cross-origin requests
+    allow_origins=origins,  # as a list
+    allow_origin_regex=None,  # as a regexp
+    # Allowed
+    allow_credentials=True,  # Credentials (Authorization headers, Cookies, etc).
+    allow_methods=["*"],  # HTTP methods
+    allow_headers=["*"],  # HTTP headers
+    # List of response HTTP headers that should be made accessible to the browser
+    expose_headers=[],
+)
 
 
