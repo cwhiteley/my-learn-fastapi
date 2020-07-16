@@ -1,4 +1,5 @@
 from __future__ import annotations
+import time
 from datetime import datetime
 from enum import Enum
 from random import randint
@@ -364,6 +365,26 @@ if False:
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request, exc):
         return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
+
+
+
+
+
+
+# Middleware
+# Wraps path operations
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    # Measure execution time
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+
+    # Add header
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+
+
 
 
 
