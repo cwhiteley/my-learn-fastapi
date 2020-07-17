@@ -478,3 +478,36 @@ app.include_router(
     dependencies=[Depends(get_token_header)],  # evaluated for all operations
     responses={404: {"description": "Not found"}},  # predefined responses
 )
+
+
+
+
+
+
+
+
+
+
+
+# Background tasks
+
+from fastapi import BackgroundTasks
+
+
+# Any function, async or not, can be run in the background
+def write_notification(email: str, message=""):
+    with open("log.txt", mode="w") as email_file:
+        content = f"notification for {email}: {message}"
+        email_file.write(content)
+
+
+@app.post("/send-notification/{email}")
+async def send_notification(email: str, background_tasks: BackgroundTasks):
+    # Run a task in the background
+    # The task will be run in the same process. If it does heavy computation, use Celery
+    background_tasks.add_task(
+        # Function, parameters
+        write_notification,
+        email,
+        message="some notification")
+    return {"message": "Notification sent in the background"}
