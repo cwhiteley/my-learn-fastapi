@@ -328,7 +328,12 @@ async def main():
 
 
 # Report errors
-@app.get("/item-by-id/{item_id}")
+@app.get("/item-by-id/{item_id}",
+         # Predefined responses for certain error codes
+         responses={
+             404: {"description": "Not found"},
+         }
+         )
 async def get_item_by_id(item_id: str):
     items = {"foo": "The Foo Wrestlers"}
     if item_id not in items:
@@ -434,3 +439,42 @@ app.add_middleware(
 )
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Blueprints
+
+from fastapi import APIRouter
+
+router = APIRouter()
+
+# Create your operations
+@router.get("/users/", tags=["users"])
+async def read_users():
+    return [{"username": "Foo"}, {"username": "Bar"}]
+
+
+# Add it to the app
+# It will actually create all operations on `app`
+app.include_router(router)  # simple
+
+app.include_router(
+    # Advanced
+    router,
+    # URL prefix to use for every operation
+    prefix="/items",
+    # Predefined operation arguments that will be added to all operations
+    tags=["items"],  # same tag to all operations
+    dependencies=[Depends(get_token_header)],  # evaluated for all operations
+    responses={404: {"description": "Not found"}},  # predefined responses
+)
