@@ -10,6 +10,10 @@ from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi import FastAPI, Request, Response, status, HTTPException
 from fastapi import Query, Path, Body, Cookie, Header, Form, File, UploadFile
 
+# CookieCutter template:
+# https://fastapi.tiangolo.com/tutorial/sql-databases/
+
+
 app = FastAPI(
     # App title and version, used in docs
     title='simplest',
