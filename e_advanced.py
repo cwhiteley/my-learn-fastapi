@@ -1,4 +1,7 @@
+from functools import lru_cache
+
 from fastapi import FastAPI
+from fastapi.params import Depends
 from fastapi.responses import ORJSONResponse
 from starlette.responses import HTMLResponse
 
@@ -134,3 +137,48 @@ app = FastAPI()
 app.router.route_class = ValidationErrorLoggingRoute
 
 
+
+
+
+
+
+
+
+
+# Configuration
+
+from pydantic import BaseSettings
+
+# Settings with defaults and values coming from the environment variables
+class Settings(BaseSettings):
+    # Pydantic will read the environment variables in case-insensitive way
+    app_name: str = "Awesome API"
+    admin_email: str
+    items_per_user: int = 50
+
+    class Config:
+        # Read from .env files
+        env_file = '.env'
+
+
+# Global object
+settings = Settings(
+    # Optionally, give it the name of an .env file
+    _env_file='prod.env'
+)
+
+
+# In bigger apps, it may be better to provide it as a dependency
+# Why? Because then you can override it in tests!
+@lru_cache()
+def get_settings():
+    return Settings()
+
+
+@app.get("/info")
+async def info(settings: Settings = Depends(get_settings)):
+    return {
+        "app_name": settings.app_name,
+        "admin_email": settings.admin_email,
+        "items_per_user": settings.items_per_user,
+    }
