@@ -1,4 +1,5 @@
 from fastapi import FastAPI, WebSocket
+from fastapi.params import Depends
 from fastapi.testclient import TestClient
 
 app = FastAPI()
@@ -58,3 +59,32 @@ async def startup_event():
 def test_read_items():
     with TestClient(app) as client:
         assert app.extra['startup'] == True
+
+
+
+
+
+
+
+
+
+# Test: override dependencies
+
+def original_dependency():
+    raise NotImplementedError
+
+def overridden_dependency():
+    pass
+
+@app.get('/dependency')
+def dependency(dep=Depends(original_dependency)):
+    return {'ok': 1}
+
+app.dependency_overrides[original_dependency] = overridden_dependency
+
+
+def test_dependency():
+    res = client.get('/dependency').json()   # no error
+    assert res['ok'] == 1
+
+
