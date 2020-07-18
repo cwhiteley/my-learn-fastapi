@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.testclient import TestClient
 
 app = FastAPI()
@@ -20,3 +20,25 @@ def test_read_main():
     # Use normal assertions
     assert response.status_code == 200
     assert response.json() == {"msg": "Hello World"}
+
+
+
+
+
+
+
+# Test websockets
+
+@app.websocket_route("/ws")
+async def websocket(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_json({"msg": "Hello WebSocket"})
+    await websocket.close()
+
+
+def test_websocket():
+    # Connect using `with`
+    with client.websocket_connect("/ws") as websocket:
+        # Receive
+        data = websocket.receive_json()
+        assert data == {"msg": "Hello WebSocket"}
