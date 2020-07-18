@@ -18,6 +18,23 @@ app = FastAPI(
     # App title and version, used in docs
     title='simplest',
     version='0.0.1',
+    openapi_tags=[
+        # API categories' info
+        # The order of tags defines the order of categories in the API docs
+        {'name': 'users', 'description': "User API"},
+        {'name': 'integration:google',
+         # Category with more information elsewhere
+         "externalDocs": {
+             "description": "Items external docs",
+             "url": "https://fastapi.tiangolo.com/",
+            },
+         }
+    ],
+    # OpenAPI URL can be customized.
+    # Set it to `None` to disable completely
+    openapi_url="/api/v1/openapi.json",
+    docs_url='/docs',
+    redoc_url='/redoc',
 )
 
 # Running:
