@@ -42,3 +42,19 @@ def test_websocket():
         # Receive
         data = websocket.receive_json()
         assert data == {"msg": "Hello WebSocket"}
+
+
+
+
+
+
+# Test events
+
+@app.on_event("startup")
+async def startup_event():
+    app.extra['startup'] = True
+
+
+def test_read_items():
+    with TestClient(app) as client:
+        assert app.extra['startup'] == True
