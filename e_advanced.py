@@ -28,3 +28,19 @@ async def read_items():
 #   or
 # app = FastAPI(root_path="/api/v1")
 
+
+
+
+
+# Events
+
+@app.on_event("startup")
+async def startup_event():
+    # Do things when the app initializes
+    pass
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    # Do things when the app is terminating
+    pass
