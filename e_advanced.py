@@ -4,7 +4,7 @@ from starlette.responses import HTMLResponse
 
 app = FastAPI(
     # a faster JSON encoder
-    default_response_class=ORJSONResponse)
+    default_response_class=ORJSONResponse
 )
 
 

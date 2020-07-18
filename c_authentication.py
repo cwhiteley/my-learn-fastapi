@@ -1,11 +1,12 @@
 from datetime import timedelta, datetime
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.params import Security
+from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from starlette import status
 
 
@@ -31,6 +32,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """ OAuth2 token, encoded as JWT (JSON Web Token) """
     username: Optional[str] = None
+
+    # Optional: security scopes
+    scopes: List[str] = []
 
 # hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -60,7 +64,14 @@ oauth2_scheme = OAuth2PasswordBearer(
     # URL to send the username&password to
     # Relative URL; means "./token"
     # Using a relative URL is important to make sure your application keeps working even in an advanced use case like Behind a Proxy.
-    tokenUrl="token"
+    tokenUrl="token",
+
+    # Optional: available security scopes.
+    # They will show up in the API docs
+    scopes={
+        "me": "Read information about the current user.",
+        "items": "Read items.",
+    },
 )
 
 # OAuth2 was designed so that the backend or API could be independent of the server that authenticates the user.
@@ -122,24 +133,51 @@ def get_user(db, username: str):
         return UserInDB(**user_dict)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(
+        token: str = Depends(oauth2_scheme),
+        # Optional: work with security scopes from the `Request`
+        security_scopes: SecurityScopes = Depends(),
+):
     """ Authenticate: get an OAuth2 user """
+    # Optional: security scopes stuff for the exception
+    if security_scopes.scopes:
+        # In this exception, we include the scopes required (if any) as a string separated by spaces (using scope_str).
+        # We put that string containing the scopes in in the WWW-Authenticate header (this is part of the spec).
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = f"Bearer"
+
     # Prepare an exception we might need
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": authenticate_value},
     )
 
     # Get data from the JWT token
     try:
+        # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Get the username
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
+
+        # Prepare TokenData
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (JWTError, ValidationError):
         raise credentials_exception
+
+    # Optional: check scopes vs API operation scopes
+    for scope in security_scopes.scopes:  # scopes required by the API operation
+        # The important and "magic" thing here is that get_current_user will have a different list of scopes to check for each path operation.
+        if scope not in token_data.scopes:  # scopes provided by the user
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
 
     # Load a user
     user = get_user(..., username=token_data.username)
@@ -148,7 +186,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
+# async def get_current_active_user(current_user: User = Depends(get_current_user)):
+async def get_current_active_user(
+        # Depends() using Security() with a parameter: `scopes`
+        # FastAPI will know that this is the permission required
+        current_user: User = Security(get_current_user, scopes=['me'])
+):
     """ Authenticate: get an OAuth2 *active* user """
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
