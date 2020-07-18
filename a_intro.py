@@ -92,15 +92,7 @@ class ItemType(str, Enum):
 
 # http://127.0.0.1:8000/items/5?q=somequery
 # One path parameter, one query parameter
-@app.get("/items/{item_id}",
-         # 'tags' used for OpenAPI docs navigation as categories
-         tags=['items'],
-         # Describe the API (OpenAPI docs)
-         summary='API summary (right next to the title)',
-         response_description='Description for the response value',
-         # Deprecate an API (OpenAPI docs)
-         deprecated=True,
-         )
+@app.get("/items/{item_id}")
 def read_item_by_id(
         # singular parameters (like int, float, str, bool, etc) are interpreted as query parameters
         # Pydantic models are interpreted as a request body.
@@ -124,9 +116,53 @@ def read_item_by_id(
             deprecated=True,  # stop using it
         )
         ):
-    """ Provide API description **as Markdown** """
     # Enums will be converted to their **values** (not names)
     return {"item_id": item_id, "q": q, 'item_type': item_type}
+
+
+
+
+
+
+
+# OpenAPI documentation
+
+# operationId
+@app.get("/items/",
+         # 'tags' used for OpenAPI docs navigation as categories
+         tags=['items'],
+         # Describe the API (OpenAPI docs)
+         summary='API summary (right next to the title)',
+         response_description='Description for the response value',
+         # Deprecate an API (OpenAPI docs)
+         deprecated=True,
+         # Some code generators will use them.
+         # Got to be unique.
+         operation_id="some_specific_id_you_define")
+async def read_items():
+    """ This **markdown** docstring will be used in OpenAPI
+
+    \f
+    Text after this "form feed" won't be included in OpenAPI
+
+    Returns:
+        something
+    """
+    return [{"item_id": "Foo"}]
+
+# If you want to use function names as operation ids, you've got to do it manually:
+#     for route in app.routes:
+#         if isinstance(route, APIRoute):
+#             route.operation_id = route.name  # in this case, 'read_items'
+# You'll have to make sure that they all have unique names.
+
+
+@app.get("/items/",
+         # Exclude from OpenAPI schema and generated documentation
+         include_in_schema=False)
+async def read_items():
+    return [{"item_id": "Foo"}]
+
 
 
 
