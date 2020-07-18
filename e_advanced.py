@@ -182,3 +182,47 @@ async def info(settings: Settings = Depends(get_settings)):
         "admin_email": settings.admin_email,
         "items_per_user": settings.items_per_user,
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Custom OpenAPI generator
+from fastapi.openapi.utils import get_openapi
+
+# Custom method
+def custom_openapi():
+    # Cached?
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    # Generate
+    openapi_schema = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+
+    # Modify
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+
+    # Cache
+    app.openapi_schema = openapi_schema
+
+    # Done
+    return app.openapi_schema
+
+
+# Replace the method
+app.openapi = custom_openapi
