@@ -64,7 +64,15 @@ async def read_root(
         user_agent: str = Header(None),  # takent from headers
         user_id: int = Cookie(None),  # taken from a cookie
     ):
+    # Set a cookie (on a temporary response object)
     response.set_cookie('user_id', randint(0,999))
+
+    # Set a header
+    response.headers["X-User-id"] = 'abc'
+
+    # Customize the status code
+    response.status_code = status.HTTP_200_OK
+
     # You can return:
     # dict, list, singular values as str, int, etc.
     # Pydantic models
@@ -138,7 +146,23 @@ def read_item_by_id(
          deprecated=True,
          # Some code generators will use them.
          # Got to be unique.
-         operation_id="some_specific_id_you_define")
+         operation_id="some_specific_id_you_define",
+         # Response schema
+         responses={
+             # Will go into the OpenAPI schema
+             # '404': {"model": Item},
+             200: {
+                 # Custom description
+                 "description": "Item requested by ID",
+                 "content": {
+                     "application/json": {
+                         # Custom example for a content-type
+                         "example": {"id": "bar", "value": "The bar tenders"}
+                     }
+                 },
+             },
+         },
+         )
 async def read_items():
     """ This **markdown** docstring will be used in OpenAPI
 
@@ -321,6 +345,24 @@ def save(user: User):
 
 
 
+# HTML response
+
+@app.get("/items/", response_class=HTMLResponse)
+async def read_items():
+    return """
+    <html>...</html>
+    """
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -428,6 +470,8 @@ if False:
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        # If you return a JSON response directly, it has to be ready for json.dumps()
+        # When you return a Response directly its data is not validated, converted (serialized), nor documented automatically.
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             # exc.body: the body it received with invalid data.
