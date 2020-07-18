@@ -226,3 +226,23 @@ def custom_openapi():
 
 # Replace the method
 app.openapi = custom_openapi
+
+
+
+
+
+
+
+
+
+
+
+# Mounting sub-applications
+# Django, Flask, etc
+
+from fastapi.middleware.wsgi import WSGIMiddleware
+
+flask_app = ...
+
+# Wrap it into a WSGIMiddleware, and mount
+app.mount("/v1", WSGIMiddleware(flask_app))
