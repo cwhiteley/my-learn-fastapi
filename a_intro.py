@@ -3,11 +3,11 @@ import time
 from datetime import datetime
 from enum import Enum
 from random import randint
-from typing import Optional, TypeVar, Generic, List
+from typing import Optional, List
 from pydantic import BaseModel, Field, HttpUrl
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
-from fastapi import FastAPI, Request, Response, status, HTTPException
+from fastapi import FastAPI, Depends, Request, Response, status, HTTPException
 from fastapi import Query, Path, Body, Cookie, Header, Form, File, UploadFile
 
 # CookieCutter template:
@@ -495,6 +495,9 @@ router = APIRouter()
 @router.get("/users/", tags=["users"])
 async def read_users():
     return [{"username": "Foo"}, {"username": "Bar"}]
+
+
+def get_token_header():pass
 
 
 # Add it to the app
