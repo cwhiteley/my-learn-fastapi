@@ -547,3 +547,28 @@ async def send_notification(email: str, background_tasks: BackgroundTasks):
         email,
         message="some notification")
     return {"message": "Notification sent in the background"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Run (debug)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
