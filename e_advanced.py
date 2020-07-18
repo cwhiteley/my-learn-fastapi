@@ -22,3 +22,9 @@ async def read_items():
 
 
 
+
+# Serving by a proxy, with a prefix /api
+# $ uvicorn main:app --root-path /api/v1
+#   or
+# app = FastAPI(root_path="/api/v1")
+

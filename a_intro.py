@@ -35,6 +35,13 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
     docs_url='/docs',
     redoc_url='/redoc',
+    servers=[
+        # Other servers:
+        # in case you want the docs to interact with the "staging" and "production" servers too.
+        # You'll be able to select a server in a drop-down
+        {"url": "https://stag.example.com", "description": "Staging environment"},
+        {"url": "https://prod.example.com", "description": "Production environment"},
+    ],
 )
 
 # Running:
@@ -361,6 +368,19 @@ async def read_items():
 
 
 
+# Templates
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="templates")
+
+
+@app.get("/items/{id}")
+async def read_item(request: Request, id: str):
+    return templates.TemplateResponse("item.html", {"request": request, "id": id})
+
+
+
+
+
 
 
 
@@ -508,6 +528,29 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
+
+# Built-in middlewares
+
+# Redirect all traffic to "https" and "wss"
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+app.add_middleware(HTTPSRedirectMiddleware)
+
+# Enforces that all incoming requests have a correctly set Host header, in order to guard against HTTP Host Header attacks.
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+app.add_middleware(
+    TrustedHostMiddleware, allowed_hosts=["example.com", "*.example.com"]
+)
+
+# gzip responses
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Sentry ASGI middleware
+# https://docs.sentry.io/platforms/python/asgi/
+
+# MessagePack content negotiation
+# Benefits: reduced bandwidth usage (binary JSON)
+# https://github.com/florimondmanca/msgpack-asgi
 
 
 
