@@ -339,6 +339,22 @@ async def main():
 
 
 
+# Serve static files
+
+# $ pip install aiofiles
+from fastapi.staticfiles import StaticFiles
+app.mount(  # An independent application is mounted, and is responsible to handling sub-paths
+    "/static",  # URL
+    StaticFiles(directory="static"),  # serve files from here
+    name="static",  # internal name for referencing
+)
+
+
+
+
+
+
+
 
 
 
