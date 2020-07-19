@@ -30,6 +30,8 @@ app = FastAPI(
             },
          }
     ],
+    # Return debug tracebacks on errors
+    debug=True,
     # OpenAPI URL can be customized.
     # Set it to `None` to disable completely
     openapi_url="/api/v1/openapi.json",
