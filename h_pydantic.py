@@ -1,7 +1,8 @@
 import typing
-from typing import List, Optional
+from typing import List, Optional, Iterable, Sequence, Union
+from uuid import UUID
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, PyObject
 
 
 # pydantic is primarily a parsing library, not a validation library.
@@ -67,7 +68,7 @@ user.json()
 
 
 # Validation
-from pydantic import constr, conint, validator
+from pydantic import constr, conint, validator, root_validator
 from pydantic import ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
@@ -95,6 +96,38 @@ class Model(BaseModel):
             raise ValueError('value must be "bar"')
 
         return v
+
+    # Feature-complete validator
+    @validator('foo')
+    def multiple_requirements(cls, v, values: dict, config: object, field: Field):
+        # v: the current value
+        # values: all previously validated fields. Validation is done in order of definition. Failed fields not included.
+        # config: the model config
+        # field: the field being validated
+        return v
+
+    # NOTE: a validator can be applied to multiple fields
+    @validator('foo', 'foo')
+    def v1(cls, v): return v
+
+    # For lists, it can be applied to every value
+    @validator('foo', each_item=True)
+    def v2(cls, v): return v
+
+    # A validator can be applied to all fields, prior to other validators (e.g. preraparation)
+    @validator('*', pre=True)
+    def v3(cls, v): return v
+
+    # Normally validators are not called when a value is not supplied.
+    # Use always=True to run it always:
+    @validator('foo', pre=True, always=True)
+    def v4(cls, v): return v
+
+    # A validator on the entire model
+    @root_validator(pre=True)
+    def check_model(cls, values: dict):
+        assert 'card_number' not in values, 'card_number should not be included'
+        return values
 
 
 # pydantic will raise ValidationError
@@ -236,6 +269,24 @@ items = parse_obj_as(
 
 
 
+# Validation function arguments
+from pydantic import validate_arguments, ValidationError
+
+# Validates function arguments
+# Argument types are inferred from type annotations on the function
+# arguments without a type decorator are considered as Any
+@validate_arguments
+def repeat(s: str, count: int, *, separator: bytes = b'') -> bytes:
+    pass
+
+
+
+
+
+
+
+
+
 # SqlAlchemy interaction
 from pydantic import constr
 
@@ -330,3 +381,140 @@ class FooBarModel(BaseModel, abc.ABC):
 
 
 
+
+
+
+
+# Complex types
+
+# Generators
+class Model(BaseModel):
+    # Will be consumed on assignment
+    finite: Sequence[int]
+    # Won't be consumed: will remain a generator
+    infinite: Iterable[int]
+
+
+    # You can create a validator that consumes the first value using next()
+    # and puts it back by using chain()
+
+
+# Unions
+class Model(BaseModel):
+    # Pydantic will use the first type that works
+    id: Union[UUID, int, str]
+
+    # The type Optional[x] is a shorthand for Union[x, None].
+    login: Optional[str]
+
+
+
+# DateTime
+#
+# A datetime can be supplied as:
+# * datetime
+# * int/float/str UNIX epoch timestamp
+# * str: ISO 8601: YYYY-MM-DD[T]HH:MM[:SS[.ffffff]][Z[±]HH[:]MM]]]
+#
+# date:
+# * date
+# * int/float/str
+# * str: ISO8601: YYYY-MM-DD
+#
+# time:
+# * time
+# * str: ISO8601: HH:MM[:SS[.ffffff]]
+#
+# timedelta:
+# * timedelta
+# * int/float: seconds
+# * str: ISO8601:
+#       [-][DD ][HH:MM]SS[.ffffff]
+#       [±]P[DD]DT[HH]H[MM]M[SS]S
+
+
+
+
+
+
+
+
+
+
+# Forward references
+# They just work.
+
+from typing import ForwardRef
+from pydantic import BaseModel
+
+Foo = ForwardRef('Foo')
+
+class Foo(BaseModel):
+    a: int = 123
+    b: Foo = None
+
+# But in some cases, you'll have to update
+Foo.update_forward_refs()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Settings management
+
+from pydantic import BaseSettings, RedisDsn, PostgresDsn
+
+# Reads config from the environment
+
+class Settings(BaseSettings):
+    # AUTH_KEY=...
+    auth_key: str
+
+    # MY_API_KEY=...
+    api_key: str = Field(..., env='my_api_key')
+
+    # DB connection URLs
+    redis_dsn: RedisDsn = 'redis://user:pass@localhost:6379/1'
+    pg_dsn: PostgresDsn = 'postgres://user:pass@localhost:5432/foobar'
+
+    # Python function reference
+    special_function: PyObject = 'math.cos'
+
+    class Config:
+        # Default: not case sensitive
+        case_sensitive = False
+
+        # Environment variables prefix: app name
+        env_prefix = 'my_prefix_'
+
+        # Settings for individual fields
+        fields = {
+            'auth_key': {
+                # Override env name
+                'env': 'my_auth_key',
+            },
+            'redis_dsn': {
+                # alternative env names
+                'env': ['service_redis_dsn', 'redis_url']
+            }
+        }
+
+        # Load from .env files
+        # NOTE: env variables always taks priority!
+        env_file = 'prod.env'  # filename
+        env_file_encoding = 'utf-8'
+
+# Load the settings
+print(Settings(
+    # Load from a .env file by name
+    _env_file='prod.env', _env_file_encoding='utf-8'
+).dict())
