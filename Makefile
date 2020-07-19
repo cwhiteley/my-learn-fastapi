@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-inputs = a_intro.md b_di.md c_authentication.md d_db.md e_advanced.md f_graphql.md g_websockets.md h_pydantic.md
+inputs = a_intro.md b_di.md c_authentication.md d_db.md e_advanced.md f_graphql.md g_websockets.md h_pydantic.md tests.md
 
 all: README.md
 
