@@ -6,9 +6,9 @@ existing_mds = z_pytest.md
 all: README.md
 
 .PRECIOUS: README.md
-README.md: $(generate_mds) $(existing_mds) Makefile
+README.md: $(generate_mds) $(existing_mds) Makefile README-header.md
 	# Collect
-	cat $(generate_mds) $(existing_mds) > README.md
+	cat README-header.md $(generate_mds) $(existing_mds) > README.md
 
 .INTERMEDIATE: $(generate_mds)
 $(generate_mds): %.md: %.py
