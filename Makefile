@@ -1,16 +1,17 @@
 SHELL := /bin/bash
 
-inputs = a_intro.md b_di.md c_authentication.md d_db.md e_advanced.md f_graphql.md g_websockets.md h_pydantic.md tests.md
+generate_mds = a_intro.md b_di.md c_authentication.md d_db.md e_advanced.md f_graphql.md g_websockets.md h_pydantic.md tests.md
+existing_mds = z_pytest.md
 
 all: README.md
 
 .PRECIOUS: README.md
-README.md: $(inputs) Makefile
+README.md: $(generate_mds) $(existing_mds) Makefile
 	# Collect
-	cat $(inputs) > README.md
+	cat $(generate_mds) $(existing_mds) > README.md
 
-.INTERMEDIATE: $(inputs)
-$(inputs): %.md: %.py
+.INTERMEDIATE: $(generate_mds)
+$(generate_mds): %.md: %.py
 	echo "# $<" > $@
 	echo '```python' >> $@
 	cat $< >> $@
